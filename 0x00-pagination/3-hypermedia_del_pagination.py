@@ -4,6 +4,7 @@ Deletion-resilient hypermedia pagination
 """
 
 import csv
+import math
 from typing import List, Dict
 
 
@@ -38,46 +39,31 @@ class Server:
             }
         return self.__indexed_dataset
 
-    def get_hyper_index(self, index: int = None, page_size: int = 10) -> Dict:
-        """Retrieve hyper-indexed dataset information.
+    def get_hyper_index(self, index: int = None,
+                        page_size: int = 10) -> Dict:
+        """ return all data"""
 
-        Args:
-            index (int, optional): The current start index of the return page.
-            Defaults to None.
-            page_size (int, optional): The current page size. Defaults to 10.
+        if index is None:
+            index = 0
 
-        Returns:
-            Dict: A dictionary containing hyper-indexed dataset information.
-        """
-        assert index is None or (isinstance(index, int) and index >= 0),
+        # validate the index
+        assert isinstance(index, int)
+        assert 0 <= index < len(self.indexed_dataset())
+        assert isinstance(page_size, int) and page_size > 0
 
-        dataset_length = len(self.dataset())
-        next_index = index + page_size if index is not None else None
+        data = []  # collect all indexed data
+        next_index = index + page_size
 
-        if index is not None:
-            assert index < dataset_length, "Index is out of range"
-            start_index = index
-            end_index = min(index + page_size, dataset_length)
-            data = [self.indexed_dataset().get(i, []) for i in range(start_index, end_index)]
-        else:
-            data = []
+        for value in range(index, next_index):
+            if self.indexed_dataset().get(value):
+                data.append(self.indexed_dataset()[value])
+            else:
+                value += 1
+                next_index += 1
 
         return {
-            "index": index,
-            "next_index": next_index,
-            "page_size": page_size,
-            "data": data
+            'index': index,
+            'data': data,
+            'page_size': page_size,
+            'next_index': next_index
         }
-
-
-# Example usage
-if __name__ == "__main__":
-    server = Server()
-
-    # Test get_hyper_index method
-    start_index = 20
-    page_size = 10
-    hyper_data = server.get_hyper_index(start_index, page_size)
-    print("Hyper-indexed data:")
-    for key, value in hyper_data.items():
-        print(f"{key}: {value}")
